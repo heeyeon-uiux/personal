@@ -10,6 +10,14 @@
   <link rel="apple-touch-icon" href="img/icon.png">
   <meta name="apple-mobile-web-app-title" content="메시지">
   <script>
+    // 화면 전환 방향 (앞으로: 오른쪽에서 들어옴 / 뒤로: 왼쪽에서 들어옴)
+    document.documentElement.dataset.nav = sessionStorage.getItem('navDir') || 'forward';
+    addEventListener('pagereveal', function () {
+      document.documentElement.dataset.nav = sessionStorage.getItem('navDir') || 'forward';
+    });
+  </script>
+  <script>
+
     // 홈 화면 웹앱은 Safari와 캐시가 따로라서 옛날 HTML을 계속 보여줄 수 있음.
     // 캐시에서 열렸으면 한 번만 서버에서 새로 받아와 다시 로드 → 푸시한 최신 버전이 반영됨
     (function () {
