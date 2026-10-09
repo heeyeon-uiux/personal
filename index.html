@@ -31,22 +31,23 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100dvh;
-    }
+    /* 페이지 자체는 스크롤·바운스 없이 고정 (스크롤은 메시지 영역만) */
+    html, body { overflow: hidden; overscroll-behavior: none; }
+    body { position: fixed; inset: 0; }
 
     /* ───── 화면 (웹앱 전체 화면) ───── */
     :root {
       --safe-top: max(env(safe-area-inset-top), 12px);
-      --safe-bottom: max(env(safe-area-inset-bottom), 10px);
+      /* 홈 인디케이터 영역(34px)보다 살짝 낮게 → 실제 문자앱처럼 입력창이 바닥 가까이 */
+      --safe-bottom: max(calc(env(safe-area-inset-bottom) - 6px), 10px);
     }
+    /* iOS 홈 화면 웹앱(black-translucent)에선 100vh/100dvh가 상태바 높이만큼 짧게 잡혀
+       하단이 떠 보이는 버그가 있어서, 높이를 JS로 실제 화면 높이(--app-h)에 맞춤 */
     .phone {
-      position: relative;
-      width: 100vw;
-      height: 100dvh;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      width: 100%;
+      height: var(--app-h, 100vh);
       background: var(--bg);
       overflow: hidden;
       isolation: isolate;
@@ -230,13 +231,15 @@
     .spam {
       display: block;
       margin: 0 auto;
-      height: 38px;
-      padding: 0 22px;
+      height: 24px;
+      padding: 0 8px;
       border-radius: 19px;
-      font-size: 14px; font-weight: 600;
+      font-size: 13px; font-weight: 600;
       color: var(--link);
       cursor: pointer;
       font-family: inherit;
+      border: none;
+      background: var(--bubble);
     }
     .spam:active { transform: scale(.96); }
 
@@ -252,23 +255,25 @@
     }
     .plus {
       flex: none;
-      width: 46px; height: 46px;
+      width: 40px; height: 40px;
       border-radius: 50%;
       display: grid; place-items: center;
       color: #cfcfd6;
       padding: 0;
       cursor: pointer;
+      background: rgba(255,255,255, 0.2);
     }
-    .plus svg { width: 20px; height: 20px; }
+    .plus svg { width: 20px; height: 20px; color: #fff; }
     .plus:active { transform: scale(.93); }
 
     .field {
       flex: 1;
-      height: 46px;
+      height: 40px;
       border-radius: 23px;
       display: flex; align-items: center;
-      padding: 0 8px 0 18px;
+      padding: 0 8px 0 12px;
       gap: 8px;
+      background: rgba(255,255,255, 0.2);
     }
     .field input {
       flex: 1;
@@ -276,20 +281,20 @@
       background: transparent;
       border: 0; outline: 0;
       color: #fff;
-      font-size: 16px; /* iOS 입력창 확대 방지 */
+      font-size: 14px; /* iOS 입력창 확대 방지 */
       font-family: inherit;
     }
     .field input::placeholder { color: rgba(235,235,245,.38); }
     .mic, .send {
       flex: none;
-      width: 32px; height: 32px;
+      width: 24px; height: 24px;
       display: grid; place-items: center;
       border: 0; padding: 0;
       background: transparent;
       color: rgba(235,235,245,.45);
       cursor: pointer;
     }
-    .mic svg { width: 16px; height: 22px; }
+    .mic svg { width: 12px; height: 16px; }
     .send {
       border-radius: 50%;
       background: var(--blue);
@@ -398,7 +403,7 @@
     </div>
 
     <div class="unknown">모르는 업체입니까?</div>
-    <button class="spam glass" type="button">스팸 신고</button>
+    <button class="spam" type="button">스팸 신고</button>
 
   </main>
 
@@ -424,6 +429,27 @@
 </div>
 
 <script>
+  // 화면 높이 보정: 홈 화면 웹앱이면 기기 화면 전체 높이 사용
+  const setAppHeight = () => {
+  let h = window.innerHeight;
+  if (navigator.standalone) {
+  const portrait = window.matchMedia('(orientation: portrait)').matches;
+  const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+  h = Math.max(h, screenH);
+}
+  document.documentElement.style.setProperty('--app-h', h + 'px');
+};
+  setAppHeight();
+  window.addEventListener('resize', setAppHeight);
+  window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+
+  // 말풍선 앞뒤 빈 줄 제거 (<div> 바로 다음·</div> 바로 앞의 줄바꿈)
+  document.querySelectorAll('.bubble').forEach((b) => {
+  const first = b.firstChild, last = b.lastChild;
+  if (first && first.nodeType === 3) first.textContent = first.textContent.replace(/^\s+/, '');
+  if (last && last.nodeType === 3) last.textContent = last.textContent.replace(/\s+$/, '');
+});
+
   const scroll = document.getElementById('scroll');
   const form = document.getElementById('composer');
   const input = document.getElementById('input');
@@ -438,20 +464,20 @@
 
   // 보내면 파란 말풍선 추가
   form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const text = input.value.trim();
-    if (!text) return;
-    const row = document.createElement('div');
-    row.className = 'row me';
-    const b = document.createElement('div');
-    b.className = 'bubble me tail';
-    b.textContent = text;
-    row.appendChild(b);
-    scroll.insertBefore(row, scroll.querySelector('.unknown'));
-    input.value = '';
-    field.classList.remove('has-text');
-    toBottom(true);
-  });
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+  const row = document.createElement('div');
+  row.className = 'row me';
+  const b = document.createElement('div');
+  b.className = 'bubble me tail';
+  b.textContent = text;
+  row.appendChild(b);
+  scroll.insertBefore(row, scroll.querySelector('.unknown'));
+  input.value = '';
+  field.classList.remove('has-text');
+  toBottom(true);
+});
 
 </script>
 </body>
