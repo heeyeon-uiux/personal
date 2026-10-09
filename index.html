@@ -7,6 +7,22 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="img/icon.png">
+  <meta name="apple-mobile-web-app-title" content="메시지">
+  <script>
+    // 홈 화면 웹앱은 Safari와 캐시가 따로라서 옛날 HTML을 계속 보여줄 수 있음.
+    // 캐시에서 열렸으면 한 번만 서버에서 새로 받아와 다시 로드 → 푸시한 최신 버전이 반영됨
+    (function () {
+      try {
+        var nav = performance.getEntriesByType('navigation')[0];
+        var fromCache = nav && nav.transferSize === 0;
+        if (fromCache && !sessionStorage.getItem('fresh-loaded')) {
+          sessionStorage.setItem('fresh-loaded', '1');
+          fetch(location.href, { cache: 'reload' }).then(function () { location.reload(); });
+        }
+      } catch (e) {}
+    })();
+  </script>
   <title>리퀴드 글래스 문자 화면</title>
   <style>
     :root {
@@ -31,23 +47,22 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* 페이지 자체는 스크롤·바운스 없이 고정 (스크롤은 메시지 영역만) */
-    html, body { overflow: hidden; overscroll-behavior: none; }
-    body { position: fixed; inset: 0; }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+    }
 
     /* ───── 화면 (웹앱 전체 화면) ───── */
     :root {
       --safe-top: max(env(safe-area-inset-top), 12px);
-      /* 홈 인디케이터 영역(34px)보다 살짝 낮게 → 실제 문자앱처럼 입력창이 바닥 가까이 */
-      --safe-bottom: max(calc(env(safe-area-inset-bottom) - 6px), 10px);
+      --safe-bottom: max(env(safe-area-inset-bottom), 10px);
     }
-    /* iOS 홈 화면 웹앱(black-translucent)에선 100vh/100dvh가 상태바 높이만큼 짧게 잡혀
-       하단이 떠 보이는 버그가 있어서, 높이를 JS로 실제 화면 높이(--app-h)에 맞춤 */
     .phone {
-      position: fixed;
-      top: 0; left: 0; right: 0;
-      width: 100%;
-      height: var(--app-h, 100vh);
+      position: relative;
+      width: 100vw;
+      height: 100dvh;
       background: var(--bg);
       overflow: hidden;
       isolation: isolate;
@@ -429,26 +444,6 @@
 </div>
 
 <script>
-  // 주소 뒤에 ?debug 붙여 열면 화면 크기 값 표시 (문제 생길 때 확인용)
-  if (location.search.includes('debug')) {
-    const d = document.createElement('div');
-    d.style.cssText = 'position:fixed;left:8px;right:8px;top:50%;z-index:99;padding:10px;border-radius:12px;background:rgba(255,0,80,.85);color:#fff;font:12px/1.5 monospace;white-space:pre';
-    const probe = document.createElement('div');
-    probe.style.cssText = 'position:fixed;inset:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
-    document.body.append(probe, d);
-    const show = () => {
-      const cs = getComputedStyle(probe);
-      d.textContent =
-        `standalone: ${!!navigator.standalone}\n` +
-        `innerHeight: ${innerHeight}\n` +
-        `clientHeight: ${document.documentElement.clientHeight}\n` +
-        `screen: ${screen.width}x${screen.height}\n` +
-        `phone height: ${document.getElementById('phone').offsetHeight}\n` +
-        `safe top/bottom: ${cs.paddingTop} / ${cs.paddingBottom}`;
-    };
-    show(); addEventListener('resize', show);
-  }
-
   // 말풍선 앞뒤 빈 줄 제거 (<div> 바로 다음·</div> 바로 앞의 줄바꿈)
   document.querySelectorAll('.bubble').forEach((b) => {
     const first = b.firstChild, last = b.lastChild;
