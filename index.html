@@ -23,6 +23,23 @@
       } catch (e) {}
     })();
   </script>
+  <script>
+    function setAppHeight() {
+      const height = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+
+      document.documentElement.style.setProperty(
+        '--app-height',
+        `${height}px`
+      );
+    }
+
+    setAppHeight();
+
+    window.addEventListener('resize', setAppHeight);
+    window.visualViewport?.addEventListener('resize', setAppHeight);
+  </script>
   <title>리퀴드 글래스 문자 화면</title>
   <style>
     :root {
@@ -53,9 +70,10 @@
       --safe-bottom: max(env(safe-area-inset-bottom), 10px);
     }
     .phone {
-      position: relative;
+      position: fixed;
+      inset: 0;
       width: 100%;
-      height: 100vh;
+      height: var(--app-height, 100vh);
       background: var(--bg);
       overflow: hidden;
       isolation: isolate;
