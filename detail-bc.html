@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <link rel="apple-touch-icon" href="img/icon.png">
+  <meta name="apple-mobile-web-app-title" content="메시지">
+  <script>
+    // 홈 화면 웹앱은 Safari와 캐시가 따로라서 옛날 HTML을 계속 보여줄 수 있음.
+    // 캐시에서 열렸으면 한 번만 서버에서 새로 받아와 다시 로드 → 푸시한 최신 버전이 반영됨
+    (function () {
+      try {
+        var nav = performance.getEntriesByType('navigation')[0];
+        var fromCache = nav && nav.transferSize === 0;
+        if (fromCache && !sessionStorage.getItem('fresh-loaded')) {
+          sessionStorage.setItem('fresh-loaded', '1');
+          fetch(location.href, { cache: 'reload' }).then(function () { location.reload(); });
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <script>
+    function setAppHeight() {
+      const height = window.visualViewport
+        ? window.visualViewport.height
+        : window.innerHeight;
+
+      document.documentElement.style.setProperty(
+        '--app-height',
+        `${height}px`
+      );
+    }
+
+    setAppHeight();
+
+    window.addEventListener('resize', setAppHeight);
+    window.visualViewport?.addEventListener('resize', setAppHeight);
+  </script>
+  <title>리퀴드 글래스 문자 화면</title>
+  <style>
+    :root {
+      --bg: #000;
+      --bubble: #262629;
+      --text: #f2f2f7;
+      --sub: #8e8e93;
+      --link: #3d8bff;
+      --blue: #0a84ff;
+      --body-size: 14px; /* 본문 문자 폰트 크기 */
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Apple SD Gothic Neo",
+      "Pretendard", "Noto Sans KR", system-ui, sans-serif;
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ───── 화면 (웹앱 전체 화면) ───── */
+    :root {
+      --safe-top: max(env(safe-area-inset-top), 12px);
+      --safe-bottom: max(env(safe-area-inset-bottom), 10px);
+    }
+    .phone {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: var(--app-height, 100vh);
+      background: var(--bg);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    body { background: var(--bg); }
+
+    /* ───── 리퀴드 글래스 공통 ─────
+       색을 깐 반투명 판이 아니라 '투명한 유리'로:
+       · 배경색 거의 없음 (아주 옅은 밝기만)
+       · 뒤 콘텐츠는 살짝만 흐리고 채도·밝기만 올림
+       · 얇은 빛 테두리(스펙큘러 림)로 유리 두께감 */
+    .glass {
+      position: relative;
+      background: rgba(255,255,255,.035);
+      -webkit-backdrop-filter: blur(2.5px) saturate(160%) brightness(1.12);
+      backdrop-filter: blur(2.5px) saturate(160%) brightness(1.12);
+      border: 0;
+      box-shadow:
+          inset 0 0 0 1px rgba(255,255,255,.10),
+          inset 1px 1.5px 0 -0.5px rgba(255,255,255,.30),
+          inset -1px -1.5px 0 -0.5px rgba(255,255,255,.14),
+          inset 0 0 10px rgba(255,255,255,.04),
+          0 2px 10px rgba(0,0,0,.35);
+      overflow: hidden;
+    }
+    .glass > * { position: relative; z-index: 1; }
+
+    /* ───── 스크롤 영역 (상·하단 UI 뒤로 콘텐츠가 비침) ───── */
+    .scroll {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: calc(var(--safe-top) + 150px) 16px calc(var(--safe-bottom) + 84px);
+      scrollbar-width: none;
+      overscroll-behavior: contain;
+    }
+    .scroll::-webkit-scrollbar { display: none; }
+
+    /* ───── 상·하단 검정 그라데이션 ───── */
+    .fade {
+      position: absolute;
+      left: 0; right: 0;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .fade.top { top: 0; height: calc(var(--safe-top) + 160px); }
+    .fade.bottom { bottom: 0; height: calc(var(--safe-bottom) + 110px); }
+
+    /* 블러 없이 검정 그라데이션 + 투명도만 → 뒤 콘텐츠가 그대로 비침 */
+    .fade .tint { position: absolute; inset: 0; }
+    .fade.top .tint {
+      background: linear-gradient(to bottom,
+      rgba(0,0,0,.78) 0%, rgba(0,0,0,.62) 40%, rgba(0,0,0,.26) 75%, rgba(0,0,0,0) 100%);
+    }
+    .fade.bottom .tint {
+      background: linear-gradient(to top,
+      rgba(0,0,0,.82) 0%, rgba(0,0,0,.6) 45%, rgba(0,0,0,.2) 80%, rgba(0,0,0,0) 100%);
+    }
+
+    /* ───── 헤더 ───── */
+    .header {
+      position: absolute;
+      top: var(--safe-top); left: 0; right: 0;
+      z-index: 10;
+      padding-top: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      pointer-events: none;
+    }
+    .header > * { pointer-events: auto; }
+
+    .back {
+      position: absolute;
+      left: 16px; top: 6px;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      border: 0;
+      padding: 0;
+      color: #fff;
+      cursor: pointer;
+    }
+    .back svg { width: 12px; height: 20px; }
+    .back:active { transform: scale(.94); }
+
+    .avatar {
+      position: relative;
+      z-index: 2; /* 아바타가 이름 알약보다 위 */
+      width: 60px; height: 60px;
+
+      display: grid; place-items: center;
+      font-size: 32px; font-weight: 800; color: #fff;
+      letter-spacing: -1px;
+    }
+    .avatar > img {
+      width: 100%;
+      height: 100%;
+    }
+    /* 이름 알약 윗부분이 아바타 밑으로 살짝 들어감 (아바타가 위에 겹침) */
+    .name-pill {
+      z-index: 1;
+      margin-top: -6px;
+      height: 31px;
+      padding: 0 11px 0 15px;
+      border-radius: 16px;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 15px; font-weight: 700;
+      letter-spacing: -.2px;
+      cursor: pointer;
+    }
+    .name-pill svg { width: 7px; height: 12px; opacity: .6; }
+
+    /* ───── 메시지 ───── */
+    .stamp {
+      text-align: center;
+      color: var(--sub);
+      font-size: 12px;
+      line-height: 1.45;
+      margin: 18px 0 12px;
+    }
+    .stamp b { font-weight: 600; }
+
+    .row { display: flex; margin-bottom: 8px; }
+    .row.me { justify-content: flex-end; }
+
+    .bubble {
+      position: relative;
+      max-width: 82%;
+      padding: 9px 15px 10px;
+      background: var(--bubble);
+      border-radius: 20px;
+      font-size: var(--body-size); /* 14px */
+      line-height: 1.42;
+      letter-spacing: -.1px;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+      white-space: pre-line;
+    }
+    .bubble a { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+
+    /* 말풍선 꼬리 — iOS 26 스타일
+       말풍선 왼쪽 끝 바깥으로 튀어나가지 않고, 왼쪽 아래 모서리 안쪽에서
+       아래로 살짝 늘어졌다가 오목하게 바닥선으로 돌아오는 작은 갈고리 모양 */
+    .bubble.tail::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -7px;
+      width: 22px;
+      height: 15px;
+      background: var(--tail, var(--bubble));
+      -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 15'%3E%3Cpath d='M10 0C9.4 5.5 8.3 10.6 6.6 13.4c-.4.7.2 1.4.9 1.1C11.2 12.9 15.4 9.6 22 8V0Z'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 15'%3E%3Cpath d='M10 0C9.4 5.5 8.3 10.6 6.6 13.4c-.4.7.2 1.4.9 1.1C11.2 12.9 15.4 9.6 22 8V0Z'/%3E%3C/svg%3E") no-repeat 0 0 / 100% 100%;
+      pointer-events: none;
+    }
+    .row:has(.tail) { margin-bottom: 11px; }
+
+    /* 보낸 메시지 (꼬리는 오른쪽으로 좌우반전) */
+    .bubble.me {
+      background: linear-gradient(180deg, #2b93ff, #0a84ff);
+      color: #fff;
+      --tail: #0a84ff;
+    }
+    .bubble.me.tail::after {
+      left: auto;
+      right: 0;
+      transform: scaleX(-1);
+    }
+
+    .unknown {
+      text-align: center;
+      color: var(--sub);
+      font-size: 12px;
+      margin: 30px 0 10px;
+    }
+    .spam {
+      display: block;
+      margin: 0 auto;
+      height: 24px;
+      padding: 0 8px;
+      border-radius: 19px;
+      font-size: 13px; font-weight: 600;
+      color: var(--link);
+      cursor: pointer;
+      font-family: inherit;
+      border: none;
+      background: var(--bubble);
+    }
+    .spam:active { transform: scale(.96); }
+
+    /* ───── 하단 입력창 ───── */
+    .composer {
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      z-index: 10;
+      padding: 0 16px var(--safe-bottom);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .plus {
+      flex: none;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      display: grid; place-items: center;
+      color: #cfcfd6;
+      padding: 0;
+      cursor: pointer;
+      background: rgba(255,255,255, 0.2);
+    }
+    .plus svg { width: 20px; height: 20px; color: #fff; }
+    .plus:active { transform: scale(.93); }
+
+    .field {
+      flex: 1;
+      height: 40px;
+      border-radius: 23px;
+      display: flex; align-items: center;
+      padding: 0 8px 0 12px;
+      gap: 8px;
+      background: rgba(255,255,255, 0.2);
+    }
+    .field input {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: 0; outline: 0;
+      color: #fff;
+      font-size: 14px; /* iOS 입력창 확대 방지 */
+      font-family: inherit;
+    }
+    .field input::placeholder { color: rgba(235,235,245,.38); }
+    .mic, .send {
+      flex: none;
+      width: 24px; height: 24px;
+      display: grid; place-items: center;
+      border: 0; padding: 0;
+      background: transparent;
+      color: rgba(235,235,245,.45);
+      cursor: pointer;
+    }
+    .mic svg { width: 12px; height: 16px; }
+    .send {
+      border-radius: 50%;
+      background: var(--blue);
+      color: #fff;
+      display: none;
+    }
+    .send svg { width: 16px; height: 16px; }
+    .field.has-text .send { display: grid; }
+    .field.has-text .mic { display: none; }
+
+  </style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+
+  <!-- 상단 그라데이션 / 블러 -->
+  <div class="fade top"><div class="tint"></div></div>
+
+  <!-- 헤더 -->
+  <header class="header">
+    <button class="back glass" aria-label="뒤로">
+      <svg viewBox="0 0 12 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2 2 10l8 8"/></svg>
+    </button>
+    <div class="avatar" aria-hidden="true"><img src="img/bc-avatar.png" alt=""></div>
+    <div class="name-pill glass" role="button" tabindex="0">
+      <span>비씨카드</span>
+      <svg viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 5 5-5 5"/></svg>
+    </div>
+  </header>
+
+  <!-- 메시지 스크롤 영역 -->
+  <main class="scroll" id="scroll">
+
+    <div class="row">
+      <div class="bubble tail"><b>(광고)[BC카드] 컬리 1만 2천원 쿠폰</b>
+        [Web발신]
+        (광고)[BC카드] 컬리 1만 2천원 쿠폰
+
+        BC카드 고객님께만 최대 12,000원 컬리 쿠폰 드려요!
+
+        ■ 컬리 쿠폰 받으러 가기
+        https://app.kurly.com/e9ee/lugf71ga
+
+        ■ 컬리 12,000원 쿠폰
+        - 최소 주문 금액: 2만원
+        - 대상: 컬리 첫 구매 고객님
+
+        ■ 컬리 10,000원 쿠폰
+        - 최소 주문 금액: 2만원
+        - 대상: 최근 3개월 내 컬리 주문 내역 없는 고객님
+
+        ■ 컬리 3,000원 쿠폰
+        - 최소 주문 금액: 6만원
+        - 이 문자를 수신한 회원은 누구나 받을 수 있어요!
+
+        ■ 기간
+        - 쿠폰 다운로드: 2026.10.01(목)~10.31(토)
+        - 쿠폰 사용: 쿠폰 발급 후 7일 이내
+
+        ■ 대상: 본 문자를 수신한 회원 대상
+
+        ■ 꼭 알아두세요!
+        - 컬리에서 진행하는 이벤트로, 혜택은 컬리에서 제공합니다.
+        - 각 쿠폰은 ID당 1회만 사용 가능합니다 (중복 발급 되더라도 1회 사용 가능)
+        - 선착순 한정 이벤트로 사전에 고지없이 조기 마감 될 수 있습니다.
+        - 본 이벤트는 이 문자를 받으신 회원 대상 이벤트입니다.
+        - 문의사항은 컬리 고객센터 1644-1107 (월~토 오전7시 - 오후6시)로 문의해주세요
+
+        - 계약을 체결하기 전에 금융상품설명서와 약관을 확인하시기 바랍니다.
+        - 신용카드 발급이 부적정한 경우(연체금 보유, 신용점수 등 낮음) 카드발급이 제한될 수 있습니다.
+        - 카드이용대금과 이에 수반되는 모든 수수료를 지정된 대금 결제일에 상환합니다.
+        ▶ 상환능력에 비해 신용카드 사용액이 과도할 경우, 귀하의 개인신용평점이 하락할 수 있습니다.
+        ▶ 개인신용평점 하락 시 금융거래와 관련된 불이익이 발생할 수 있습니다.
+        ▶ 일정기간 원리금(또는 대출금,납부대금 등)을 연체할 경우, 모든 원리금을 변제할 의무가 발생할 수 있습니다
+        - 금융소비자는 금소법 제19조제1항에 따라 해당상품 또는 서비스에 대하여 설명을 받을 권리가 있으며, 그 설명을 듣고 내용을 충분히 이해한 후 거래하시기 바랍니다.
+
+        ※ 준법감시인 2026-0430호(2026.03.03~2027.03.02)
+        * [금융거래보호 캠페인] 금융회사는 어떤 경우든 비밀번호나 금융거래정보를 전화로 묻지 않습니다.
+
+        ☎ 컬리 고객센터 1644-1107
+        ☎ 비씨카드 고객센터 <a href="">1588-4000</a>
+        ☎ 무료수신거부 <a href="">080-780-9548</a></div>
+    </div>
+
+    <div class="stamp"><b>문자 메시지</b> • RCS<br>(어제) 23:22</div>
+
+    <div class="row">
+      <div class="bubble tail">[Web발신]
+        BC바로(9004) 승인
+        조*연님
+        35,000원 일시불
+        10/08 23:22
+        파이팅
+        총누적1,513,511원</div>
+    </div>
+
+    <div class="row">
+      <div class="bubble tail">[Web발신]
+        BC바로(9004) 승인
+        조*연님
+        5,000원 일시불
+        10/08 23:47
+        와드 코인 노래연습장
+        총누적1,518,511원</div>
+    </div>
+
+    <div class="unknown">모르는 업체입니까?</div>
+    <button class="spam" type="button">스팸 신고</button>
+
+  </main>
+
+  <!-- 하단 그라데이션 / 블러 -->
+  <div class="fade bottom"><div class="tint"></div></div>
+
+  <!-- 입력창 -->
+  <form class="composer" id="composer" autocomplete="off">
+    <button class="plus glass" type="button" aria-label="첨부">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 2v16M2 10h16"/></svg>
+    </button>
+    <label class="field glass" id="field">
+      <input id="input" type="text" placeholder="문자 메시지 • RCS" aria-label="메시지 입력">
+      <button class="mic" type="button" aria-label="음성 입력">
+        <svg viewBox="0 0 16 22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4.5" y="1" width="7" height="12" rx="3.5"/><path d="M1.5 10a6.5 6.5 0 0 0 13 0M8 16.5V21"/></svg>
+      </button>
+      <button class="send" type="submit" aria-label="보내기">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 14V2M2.5 7.5 8 2l5.5 5.5"/></svg>
+      </button>
+    </label>
+  </form>
+
+</div>
+
+<script>
+  // 말풍선 앞뒤 빈 줄 제거 (<div> 바로 다음·</div> 바로 앞의 줄바꿈)
+  document.querySelectorAll('.bubble').forEach((b) => {
+    const first = b.firstChild, last = b.lastChild;
+    if (first && first.nodeType === 3) first.textContent = first.textContent.replace(/^\s+/, '');
+    if (last && last.nodeType === 3) last.textContent = last.textContent.replace(/\s+$/, '');
+  });
+
+  const scroll = document.getElementById('scroll');
+  const form = document.getElementById('composer');
+  const input = document.getElementById('input');
+  const field = document.getElementById('field');
+
+  // 처음엔 맨 아래(최신 메시지)로
+  const toBottom = (smooth) => scroll.scrollTo({ top: scroll.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+  requestAnimationFrame(() => toBottom(false));
+
+  // 입력하면 마이크 → 보내기 버튼
+  input.addEventListener('input', () => field.classList.toggle('has-text', input.value.trim().length > 0));
+
+  // 보내면 파란 말풍선 추가
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    const row = document.createElement('div');
+    row.className = 'row me';
+    const b = document.createElement('div');
+    b.className = 'bubble me tail';
+    b.textContent = text;
+    row.appendChild(b);
+    scroll.insertBefore(row, scroll.querySelector('.unknown'));
+    input.value = '';
+    field.classList.remove('has-text');
+    toBottom(true);
+  });
+
+</script>
+</body>
+</html>
