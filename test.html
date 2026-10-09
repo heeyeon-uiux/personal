@@ -41,13 +41,11 @@
       /* 홈 인디케이터 영역(34px)보다 살짝 낮게 → 실제 문자앱처럼 입력창이 바닥 가까이 */
       --safe-bottom: max(calc(env(safe-area-inset-bottom) - 6px), 10px);
     }
-    /* iOS 홈 화면 웹앱(black-translucent)에선 100vh/100dvh가 상태바 높이만큼 짧게 잡혀
-       하단이 떠 보이는 버그가 있어서, 높이를 JS로 실제 화면 높이(--app-h)에 맞춤 */
+    /* 높이를 vh/dvh/JS 숫자로 지정하지 않고, 화면 네 모서리에 직접 고정
+       → 브라우저가 실제로 보여주는 영역에 정확히 맞춰짐 */
     .phone {
       position: fixed;
-      top: 0; left: 0; right: 0;
-      width: 100%;
-      height: var(--app-h, 100vh);
+      inset: 0;
       background: var(--bg);
       overflow: hidden;
       isolation: isolate;
@@ -393,19 +391,25 @@
 </div>
 
 <script>
-  // 화면 높이 보정: 홈 화면 웹앱이면 기기 화면 전체 높이 사용
-  const setAppHeight = () => {
-    let h = window.innerHeight;
-    if (navigator.standalone) {
-      const portrait = window.matchMedia('(orientation: portrait)').matches;
-      const screenH = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
-      h = Math.max(h, screenH);
-    }
-    document.documentElement.style.setProperty('--app-h', h + 'px');
-  };
-  setAppHeight();
-  window.addEventListener('resize', setAppHeight);
-  window.addEventListener('orientationchange', () => setTimeout(setAppHeight, 300));
+  // 주소 뒤에 ?debug 붙여 열면 화면 크기 값 표시 (문제 생길 때 확인용)
+  if (location.search.includes('debug')) {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;left:8px;right:8px;top:50%;z-index:99;padding:10px;border-radius:12px;background:rgba(255,0,80,.85);color:#fff;font:12px/1.5 monospace;white-space:pre';
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;inset:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);visibility:hidden;pointer-events:none';
+    document.body.append(probe, d);
+    const show = () => {
+      const cs = getComputedStyle(probe);
+      d.textContent =
+        `standalone: ${!!navigator.standalone}\n` +
+        `innerHeight: ${innerHeight}\n` +
+        `clientHeight: ${document.documentElement.clientHeight}\n` +
+        `screen: ${screen.width}x${screen.height}\n` +
+        `phone height: ${document.getElementById('phone').offsetHeight}\n` +
+        `safe top/bottom: ${cs.paddingTop} / ${cs.paddingBottom}`;
+    };
+    show(); addEventListener('resize', show);
+  }
 
   // 말풍선 앞뒤 빈 줄 제거 (<div> 바로 다음·</div> 바로 앞의 줄바꿈)
   document.querySelectorAll('.bubble').forEach((b) => {
