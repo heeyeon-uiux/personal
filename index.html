@@ -7,6 +7,8 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="theme-color" content="#000000">
+  <!-- iOS가 전화번호·날짜·주소를 자동으로 파란 링크로 바꾸는 것 끄기 -->
+  <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
   <link rel="apple-touch-icon" href="img/icon.png">
   <meta name="apple-mobile-web-app-title" content="메시지">
   <script>
@@ -217,6 +219,12 @@
       font-size: 14px;
       color: var(--sub);
     }
+    /* 혹시 자동 링크가 생겨도 원래 글자색 그대로 */
+    a[href^="tel"], a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+      font: inherit !important;
+    }
     .chev { flex: none; width: 7px; height: 12px; color: #5a5a5f; margin-left: 2px; }
 
     /* 미리보기: 최대 2줄, 넘치면 … */
@@ -313,6 +321,15 @@
         · 상세로 이동: <a class="row" href="bc.html"> (다른 화면도 만들면 href만 바꾸면 됨)
         · 미리보기는 엔터로 줄바꿈, 2줄 넘으면 자동으로 …
       -->
+      <!-- 비씨카드 → 상세 화면(bc.html)으로 이동 -->
+      <li><a class="row" href="detail-bc.html" data-go>
+        <div class="avatar app"><img src="img/bc-avatar.png" alt=""></div>
+        <div class="body">
+          <div class="top"><span class="name">비씨카드</span><span class="time">15:10</span><svg class="chev" viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 5 5-5 5"/></svg></div>
+          <div class="preview">[Web발신]
+            BC바로(9004) 승인 조*연님 4,600원 일시불</div>
+        </div>
+      </a></li>
 
       <li><div class="row unread">
         <div class="avatar"><svg viewBox="0 0 45 45"><circle cx="22.5" cy="17" r="7.5" fill="#fff"/><ellipse cx="22.5" cy="40" rx="15" ry="10" fill="#fff"/></svg></div>
@@ -323,15 +340,6 @@
         </div>
       </div></li>
 
-      <!-- 비씨카드 → 상세 화면(bc.html)으로 이동 -->
-      <li><a class="row" href="detail-bc.html" data-go>
-        <div class="avatar app"><img src="img/bc-avatar.png" alt=""></div>
-        <div class="body">
-          <div class="top"><span class="name">비씨카드</span><span class="time">어제</span><svg class="chev" viewBox="0 0 7 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 5 5-5 5"/></svg></div>
-          <div class="preview">[Web발신]
-            BC바로(9004) 승인 조*연님 5,000원 일시불</div>
-        </div>
-      </a></li>
 
       <li><div class="row unread">
         <div class="avatar"><svg viewBox="0 0 45 45"><circle cx="22.5" cy="17" r="7.5" fill="#fff"/><ellipse cx="22.5" cy="40" rx="15" ry="10" fill="#fff"/></svg></div>
