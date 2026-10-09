@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="메시지">
+<meta name="theme-color" content="#000000">
+<link rel="apple-touch-icon" href="icon.png">
+<title>메시지</title>
+<style>
+  :root{
+    --bg:#000; --bubble-in:#262629;
+    --text:#fff; --sub:#8E8E93; --link:#0A84FF; --glass:rgba(60,60,67,.55);
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{background:var(--bg);color:var(--text);height:100%;
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR",sans-serif;
+    -webkit-font-smoothing:antialiased;overscroll-behavior:none}
+  .phone{max-width:430px;margin:0 auto;min-height:100%;position:relative;display:flex;flex-direction:column}
+
+  /* 헤더: 노치/다이내믹 아일랜드 아래로 */
+  .header{position:sticky;top:0;z-index:4;display:flex;flex-direction:column;align-items:center;
+    padding:calc(var(--safe-top) + 6px) 16px 12px;
+    background:linear-gradient(#000 78%,rgba(0,0,0,0))}
+  .back{position:absolute;left:14px;top:calc(var(--safe-top) + 12px);width:42px;height:42px;border-radius:50%;
+    background:var(--glass);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    border:none;display:grid;place-items:center}
+  .back svg{width:20px;height:20px}
+  .avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(160deg,#A8A8AE,#6E6E73);
+    display:grid;place-items:center;font-size:26px;font-weight:600;color:#fff}
+  .name{margin-top:-8px;padding:6px 14px;border-radius:999px;background:var(--glass);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);
+    font-size:15px;font-weight:600;display:flex;align-items:center;gap:4px}
+  .name span{color:var(--sub);font-weight:400}
+
+  /* 대화 (수신만) */
+  .chat{flex:1;padding:8px 12px calc(var(--safe-bottom) + 90px);display:flex;flex-direction:column;gap:6px}
+  .stamp{text-align:center;color:var(--sub);font-size:12px;line-height:1.4;margin:18px 0 8px}
+  .stamp b{font-weight:600}
+  .msg{align-self:flex-start;max-width:72%;padding:9px 14px;border-radius:20px;font-size:16px;line-height:1.35;
+    position:relative;white-space:pre-line;word-break:keep-all;background:var(--bubble-in)}
+  .msg.tail::before{content:"";position:absolute;left:-6px;bottom:0;width:16px;height:18px;
+    background:var(--bubble-in);border-bottom-right-radius:14px}
+  .msg.tail::after{content:"";position:absolute;left:-10px;bottom:0;width:10px;height:18px;
+    background:var(--bg);border-bottom-right-radius:10px}
+  .msg a{color:var(--link)}
+  .gap{height:8px}
+
+  /* 입력창: 홈 인디케이터 위로 */
+  .composer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    display:flex;gap:10px;align-items:center;
+    padding:10px 14px calc(var(--safe-bottom) + 10px);
+    background:linear-gradient(rgba(0,0,0,0),#000 35%)}
+  .plus{flex:none;width:42px;height:42px;border-radius:50%;background:var(--glass);
+    -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:none;display:grid;place-items:center}
+  .plus svg{width:20px;height:20px}
+  .field{flex:1;height:42px;border-radius:21px;border:1px solid #3A3A3C;background:rgba(28,28,30,.8);
+    display:flex;align-items:center;padding:0 14px;gap:8px}
+  .field input{flex:1;min-width:0;background:none;border:none;outline:none;color:#fff;font-size:16px;font-family:inherit}
+  .field input::placeholder{color:#5A5A5F}
+  .field svg{width:18px;height:18px;flex:none}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="header">
+    <button class="back" aria-label="뒤로">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg>
+    </button>
+    <div class="avatar">지</div>
+    <div class="name">비씨카드 <span>›</span></div>
+  </div>
+
+  <div class="chat">
+    <div class="stamp"><b>문자 메시지 • SMS</b><br>(어제) 14:31</div>
+    <div class="msg tail"><b>(광고)[BC카드] 컬리 1만 2천원 쿠폰</b>
+      [Web발신]
+      (광고)[BC카드] 컬리 1만 2천원 쿠폰
+
+      BC카드 고객님께만 최대 12,000원 컬리 쿠폰 드려요!
+
+      ■ 컬리 쿠폰 받으러 가기
+      https://app.kurly.com/e9ee/lugf71ga
+
+      ■ 컬리 12,000원 쿠폰
+      - 최소 주문 금액: 2만원
+      - 대상: 컬리 첫 구매 고객님
+
+      ■ 컬리 10,000원 쿠폰
+      - 최소 주문 금액: 2만원
+      - 대상: 최근 3개월 내 컬리 주문 내역 없는 고객님
+
+      ■ 컬리 3,000원 쿠폰
+      - 최소 주문 금액: 6만원
+      - 이 문자를 수신한 회원은 누구나 받을 수 있어요!
+
+      ■ 기간
+      - 쿠폰 다운로드: 2026.10.01(목)~10.31(토)
+      - 쿠폰 사용: 쿠폰 발급 후 7일 이내
+
+      ■ 대상: 본 문자를 수신한 회원 대상
+
+      ■ 꼭 알아두세요!
+      - 컬리에서 진행하는 이벤트로, 혜택은 컬리에서 제공합니다.
+      - 각 쿠폰은 ID당 1회만 사용 가능합니다 (중복 발급 되더라도 1회 사용 가능)
+      - 선착순 한정 이벤트로 사전에 고지없이 조기 마감 될 수 있습니다.
+      - 본 이벤트는 이 문자를 받으신 회원 대상 이벤트입니다.
+      - 문의사항은 컬리 고객센터 1644-1107 (월~토 오전7시 - 오후6시)로 문의해주세요
+
+      - 계약을 체결하기 전에 금융상품설명서와 약관을 확인하시기 바랍니다.
+      - 신용카드 발급이 부적정한 경우(연체금 보유, 신용점수 등 낮음) 카드발급이 제한될 수 있습니다.
+      - 카드이용대금과 이에 수반되는 모든 수수료를 지정된 대금 결제일에 상환합니다.
+      ▶ 상환능력에 비해 신용카드 사용액이 과도할 경우, 귀하의 개인신용평점이 하락할 수 있습니다.
+      ▶ 개인신용평점 하락 시 금융거래와 관련된 불이익이 발생할 수 있습니다.
+      ▶ 일정기간 원리금(또는 대출금,납부대금 등)을 연체할 경우, 모든 원리금을 변제할 의무가 발생할 수 있습니다
+      - 금융소비자는 금소법 제19조제1항에 따라 해당상품 또는 서비스에 대하여 설명을 받을 권리가 있으며, 그 설명을 듣고 내용을 충분히 이해한 후 거래하시기 바랍니다.
+
+      ※ 준법감시인 2026-0430호(2026.03.03~2027.03.02)
+      * [금융거래보호 캠페인] 금융회사는 어떤 경우든 비밀번호나 금융거래정보를 전화로 묻지 않습니다.
+
+      ☎ 컬리 고객센터 1644-1107
+      ☎ 비씨카드 고객센터 1588-4000
+      ☎ 무료수신거부 080-780-9548</div>
+    <div class="stamp"><b>문자 메시지 • RCS</b><br>(어제) 23:22</div>
+    <div class="msg tail">[Web발신]
+      BC바로(9004) 승인
+      조*연님
+      35,000원 일시불
+      10/08 23:22
+      파이팅
+      총누적1,513,511원</div>
+    <div class="msg tail">[Web발신]
+      BC바로(9004) 승인
+      조*연님
+      5,000원 일시불
+      10/08 23:47
+      와드 코인 노래연습장
+      총누적1,518,511원</div>
+
+  </div>
+
+  <div class="composer">
+    <button class="plus" aria-label="추가">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M12 4v16M4 12h16"/></svg>
+    </button>
+    <label class="field">
+      <input placeholder="문자 메시지 • RCS">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+    </label>
+  </div>
+</div>
+</body>
+</html>
