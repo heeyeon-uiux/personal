@@ -10,6 +10,24 @@
   <link rel="apple-touch-icon" href="img/icon.png">
   <meta name="apple-mobile-web-app-title" content="메시지">
   <script>
+    // 홈 화면 웹앱인지 판별해서 실제 기기 화면 높이를 적용
+    (function () {
+      var isApp = navigator.standalone === true ||
+        (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+      if (!isApp) return;
+      var root = document.documentElement;
+      root.classList.add('standalone');
+      var set = function () {
+        var portrait = matchMedia('(orientation: portrait)').matches;
+        var h = portrait ? Math.max(screen.width, screen.height) : Math.min(screen.width, screen.height);
+        root.style.setProperty('--app-h', h + 'px');
+      };
+      set();
+      addEventListener('orientationchange', function () { setTimeout(set, 300); });
+      addEventListener('resize', set);
+    })();
+  </script>
+  <script>
     // 홈 화면 웹앱은 Safari와 캐시가 따로라서 옛날 HTML을 계속 보여줄 수 있음.
     // 캐시에서 열렸으면 한 번만 서버에서 새로 받아와 다시 로드 → 푸시한 최신 버전이 반영됨
     (function () {
@@ -69,6 +87,14 @@
     }
     body { background: var(--bg); }
 
+    /* 홈 화면 웹앱에서만: iOS가 100dvh를 상태바 높이(약 59px)만큼 짧게 계산하는 버그가 있어서
+    기기 화면 높이(--app-h)로 화면 맨 위부터 맨 아래까지 직접 채움 */
+    html.standalone, html.standalone body { height: 100%; overflow: hidden; }
+    html.standalone .phone {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      height: var(--app-h, 100vh);
+    }
     /* ───── 리퀴드 글래스 공통 ─────
        색을 깐 반투명 판이 아니라 '투명한 유리'로:
        · 배경색 거의 없음 (아주 옅은 밝기만)
